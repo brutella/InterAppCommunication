@@ -39,12 +39,11 @@ static NSString * const kIACRequest      = @"IACRequestID";
 static NSString * const kIACResponseType = @"IACResponseType";
 static NSString * const kIACErrorDomain  = @"errorDomain";
 
-typedef NS_ENUM(NSUInteger, IACResponseType) {
+typedef enum {
     IACResponseTypeSuccess,
     IACResponseTypeFailure,
     IACResponseTypeCancel
-};
-
+}IACResponseType;
 
 @implementation IACManager {
     NSMutableDictionary *sessions;

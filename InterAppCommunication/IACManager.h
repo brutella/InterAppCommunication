@@ -17,10 +17,11 @@ extern NSString * const IACErrorDomain;
 extern NSString * const IACClientErrorDomain;
 
 // Predefined error codes
-typedef NS_ENUM(NSInteger, IACError) {
+typedef enum {
     IACErrorAppNotInstalled    = 1,
     IACErrorNotSupportedAction = 2
-};
+} IACError;
+
 
 // Block template for action handlers
 typedef void(^IACActionHandlerBlock)(NSDictionary* inputParameters, IACSuccessBlock success, IACFailureBlock failure);
