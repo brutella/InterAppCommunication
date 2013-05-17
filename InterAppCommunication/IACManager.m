@@ -85,11 +85,11 @@ typedef enum {
         
         // Lets see if this is a response to a previous call
         if ([action isEqualToString:kIACResponse]) {
-            NSString *requestID = parameters[kIACRequest];
+            NSString *requestID = [parameters objectForKey:kIACRequest];
             
-            IACRequest *request = sessions[requestID];
+            IACRequest *request = [sessions objectForKey:requestID];
             if (request) {
-                IACResponseType responseType = [parameters[kIACResponseType] intValue];
+                IACResponseType responseType = [[parameters objectForKey:kIACResponseType] intValue];
             
                 switch (responseType) {
                     case IACResponseTypeSuccess:
@@ -100,11 +100,11 @@ typedef enum {
                         
                     case IACResponseTypeFailure:
                         if (request.errorCalback) {
-                            NSInteger errorCode = [request.client NSErrorCodeForXCUErrorCode:parameters[kXCUErrorCode]];
-                            NSString *errorDomain = parameters[kIACErrorDomain] ? parameters[kIACErrorDomain] : IACClientErrorDomain;
+                            NSInteger errorCode = [request.client NSErrorCodeForXCUErrorCode:[parameters objectForKey:kXCUErrorCode]];
+                            NSString *errorDomain = [parameters objectForKey:kIACErrorDomain] ? [parameters objectForKey:kIACErrorDomain] : IACClientErrorDomain;
                             NSError *error = [NSError errorWithDomain:errorDomain
                                                                  code:errorCode
-                                                             userInfo:@{NSLocalizedDescriptionKey: parameters[kXCUErrorMessage]}];
+                                                             userInfo:@{NSLocalizedDescriptionKey: [parameters objectForKey:kXCUErrorMessage]}];
                             
                             request.errorCalback(error);
                         }
@@ -130,31 +130,31 @@ typedef enum {
         }
         
         // Lets see if there is somebody that handles this action
-        if (actions[action] || [self.delegate supportsIACAction:action]) {
+        if ([actions objectForKey:action] || [self.delegate supportsIACAction:action]) {
         
             IACSuccessBlock success = ^(NSDictionary *returnParams, BOOL cancelled) {
                 if (cancelled) {
-                    if (parameters[kXCUCancel]) {
-                        [NSApp openURL:[NSURL URLWithString:parameters[kXCUCancel]]];
+                    if ([parameters objectForKey:kXCUCancel]) {
+                        [NSApp openURL:[NSURL URLWithString:[parameters objectForKey:kXCUCancel]]];
                     }
-                } else if (parameters[kXCUSuccess]) {
-                    [NSApp openURL:[NSURL URLWithString:[parameters[kXCUSuccess] stringByAppendingURLParams:returnParams]]];
+                } else if ([parameters objectForKey:kXCUSuccess]) {
+                    [NSApp openURL:[NSURL URLWithString:[[parameters objectForKey:kXCUSuccess] stringByAppendingURLParams:returnParams]]];
                 }
             };
             
             IACFailureBlock failure = ^(NSError *error) {
-                if (parameters[kXCUError]) {
+                if ([parameters objectForKey:kXCUError]) {
                     NSDictionary *errorParams = @{ kXCUErrorCode: @([error code]),
                                                    kXCUErrorMessage: [error localizedDescription],
                                                    kIACErrorDomain: [error domain]
                                                    };
-                    [NSApp openURL:[NSURL URLWithString:[parameters[kXCUError] stringByAppendingURLParams:errorParams]]];
+                    [NSApp openURL:[NSURL URLWithString:[[parameters objectForKey:kXCUError] stringByAppendingURLParams:errorParams]]];
                 }
             };
 
             // Handlers take precedence over the delegate
-            if (actions[action]) {
-                IACActionHandlerBlock actionHandler = actions[action];
+            if ([actions objectForKey:action]) {
+                IACActionHandlerBlock actionHandler = [actions objectForKey:action];
                 actionHandler(actionParamters, success, failure);
                 return YES;
                 
@@ -167,12 +167,12 @@ typedef enum {
                 return YES;
             }
         } else {
-            if (parameters[kXCUError]) {
+            if ([parameters objectForKey:kXCUError]) {
                 NSDictionary *errorParams = @{ kXCUErrorCode: @(IACErrorNotSupportedAction),
                                                kXCUErrorMessage: [NSString stringWithFormat:NSLocalizedString(@"'%@' is not an x-callback-url action supported by %@", nil), action, [self localizedAppName]],
                                                kIACErrorDomain: IACErrorDomain
                                              };
-                [NSApp openURL:[NSURL URLWithString:[parameters[kXCUError] stringByAppendingURLParams:errorParams]]];
+                [NSApp openURL:[NSURL URLWithString:[[parameters objectForKey:kXCUError] stringByAppendingURLParams:errorParams]]];
                 return YES;
             }
         }
@@ -205,12 +205,12 @@ typedef enum {
         NSMutableDictionary *xcu_params = [NSMutableDictionary dictionary];
         
         if (request.successCalback) {
-            xcu_params[kXCUSuccess] = [xcu stringByAppendingURLParams:@{kIACResponseType:@(IACResponseTypeSuccess)}];
-            xcu_params[kXCUCancel] = [xcu stringByAppendingURLParams:@{kIACResponseType:@(IACResponseTypeCancel)}];
+            [xcu_params setObject:[xcu stringByAppendingURLParams:@{kIACResponseType:@(IACResponseTypeSuccess)}] forKey:kXCUSuccess];
+            [xcu_params setObject:[xcu stringByAppendingURLParams:@{kIACResponseType:@(IACResponseTypeCancel)}] forKey:kXCUCancel];
         }
         
         if (request.errorCalback) {
-            xcu_params[kXCUError] = [xcu stringByAppendingURLParams:@{kIACResponseType:@(IACResponseTypeFailure)}];
+            [xcu_params setObject:[xcu stringByAppendingURLParams:@{kIACResponseType:@(IACResponseTypeFailure)}] forKey:kXCUError];
         }
         
         final_url = [final_url stringByAppendingURLParams:xcu_params];
@@ -218,14 +218,14 @@ typedef enum {
         NSLog(@"WARNING: If you want to support callbacks from the remote app you must define a URL Scheme for this app to listen on");
     }
         
-    sessions[request.requestID] = request;
+    [sessions setObject:request forKey:request.requestID];
     
     [NSApp openURL:[NSURL URLWithString:final_url]];
 }
 
 
 - (void)handleAction:(NSString*)action withBlock:(IACActionHandlerBlock)handler {
-    actions[action] = [handler copy];
+    [actions setObject:[handler copy] forKey:action];
 }
 
 
@@ -240,17 +240,17 @@ typedef enum {
     }];
     
     // Adds x-source parameter as this is needed to inform the user
-    if (dictionary[kXCUSource]) {
-        result[kXCUSource] = dictionary[kXCUSource];
+    if ([dictionary objectForKey:kXCUSource]) {
+        [result setObject:[dictionary objectForKey:kXCUSource] forKey:kXCUSource];
     }
     
     return result;
 }
 
 - (NSString*)localizedAppName {
-    NSString *appname = [[NSBundle mainBundle] localizedInfoDictionary][@"CFBundleDisplayName"];
+    NSString *appname = [[[NSBundle mainBundle] localizedInfoDictionary] objectForKey:@"CFBundleDisplayName"];
     if (!appname) {
-        appname = [[NSBundle mainBundle] infoDictionary][@"CFBundleDisplayName"];
+        appname = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"];
     }
     
     return appname;
