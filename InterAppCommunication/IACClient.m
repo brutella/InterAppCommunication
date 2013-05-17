@@ -39,7 +39,8 @@
 }
 
 - (BOOL)isAppInstalled {
-    return [[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@://Test", self.URLScheme]]];
+    return YES;
+//    return [NSApp canOpenURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@://Test", self.URLScheme]]];
 }
 
 - (void)performAction:(NSString*)action {
